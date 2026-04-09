@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radon Logger</title>
+</head>
+
+<body>
+<h2>Radon Logger</h2>
+
+<input id="sample" placeholder="Sample Number"><br><br>
+<input id="site" placeholder="Site"><br><br>
+<input type="date" id="date"><br><br>
+<input type="time" id="time"><br><br>
+<input type="date" id="removal"><br><br>
+
+<input type="file" accept="image/*" capture="environment" id="photo"><br><br>
+
+<button onclick="getLocation()">Capture GPS</button>
+<p id="gps"></p>
+
+<button onclick="save()">Save</button>
+
+<div id="entries"></div>
+
+<script>
+let entries = JSON.parse(localStorage.getItem("entries") || "[]");
+
+function render() {
+  document.getElementById("entries").innerHTML =
+    entries.map(e => `
+      <div style="border:1px solid #ccc; padding:10px; margin:5px">
+        <b>${e.sample}</b><br>
+        ${e.site}<br>
+        ${e.date} ${e.time}<br>
+        Remove: ${e.removal}<br>
+        GPS: ${e.lat}, ${e.lng}<br>
+        ${e.photo ? `<img src="${e.photo}" width="100%">` : ""}
+      </div>
+    `).join("");
+}
+
+render();
+
+let lat="", lng="";
+
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    lat = pos.coords.latitude.toFixed(6);
+    lng = pos.coords.longitude.toFixed(6);
+    document.getElementById("gps").innerText = lat + ", " + lng;
+  });
+}
+
+function save(){
+  const file = document.getElementById("photo").files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(){
+    entries.push({
+      sample: document.getElementById("sample").value,
+      site: document.getElementById("site").value,
+      date: document.getElementById("date").value,
+      time: document.getElementById("time").value,
+      removal: document.getElementById("removal").value,
+      lat, lng,
+      photo: reader.result
+    });
+
+    localStorage.setItem("entries", JSON.stringify(entries));
+    render();
+  };
+
+  if(file){
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload();
+  }
+}
+</script>
+
+</body>
+</html>
