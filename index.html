@@ -1,152 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radon Logger</title>
+
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-import React, { useState, useEffect } from "react";
+</head>
 
-export default function RadonLoggerApp() {
-  const [page, setPage] = useState("add");
-  const [entries, setEntries] = useState([]);
+<body>
 
-  const [form, setForm] = useState({
-    sampleNumber: "",
-    site: "",
-    date: "",
-    time: "",
-    removalDate: "",
-    photo: null,
-    lat: "",
-    lng: "",
-  });
+<h2>Radon Logger (v1.1)</h2>
 
-  // LOAD SAVED DATA
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("entries") || "[]");
-    setEntries(saved);
-  }, []);
+<button onclick="showPage('add')">Add</button>
+<button onclick="showPage('list')">List</button>
 
-  // SAVE TO LOCAL STORAGE
-  useEffect(() => {
-    localStorage.setItem("entries", JSON.stringify(entries));
-  }, [entries]);
+<div id="addPage">
+  <br>
+  <input id="sample" placeholder="Sample Number"><br><br>
+  <input id="site" placeholder="Site"><br><br>
+  <input type="date" id="date"><br><br>
+  <input type="time" id="time"><br><br>
+  <input type="date" id="removal"><br><br>
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-  };
+  <input type="file" accept="image/*" capture="environment" id="photo"><br><br>
 
-  const handlePhoto = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setForm({ ...form, photo: url });
-    }
-  };
+  <button onclick="getLocation()">Capture GPS</button>
+  <p id="gps"></p>
 
-  const getLocation = () => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setForm({
-        ...form,
-        lat: pos.coords.latitude.toFixed(6),
-        lng: pos.coords.longitude.toFixed(6),
-      });
-    });
-  };
+  <button onclick="save()">Save</button>
+</div>
 
-  const save = () => {
-    setEntries([...entries, form]);
-    setForm({
-      sampleNumber: "",
-      site: "",
-      date: "",
-      time: "",
-      removalDate: "",
-      photo: null,
-      lat: "",
-      lng: "",
-    });
-    setPage("list");
-  };
+<div id="listPage" style="display:none">
+  <br>
+  <button onclick="exportData()">Export</button>
+  <button onclick="shareData()">Share</button>
 
-  const deleteEntry = (index) => {
-    const updated = entries.filter((_, i) => i !== index);
-    setEntries(updated);
-  };
+  <div id="entries"></div>
+</div>
 
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify(entries, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "radon-data.json";
-    a.click();
-  };
+<script>
+let entries = JSON.parse(localStorage.getItem("entries") || "[]");
 
-  const shareData = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: "Radon Data",
-        text: JSON.stringify(entries),
-      });
-    } else {
-      alert("Sharing not supported on this device");
-    }
-  };
-
-  return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Radon Logger</h1>
-
-      {/* NAV */}
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setPage("add")} className="bg-blue-500 text-white px-3 py-2 rounded">Add</button>
-        <button onClick={() => setPage("list")} className="bg-gray-500 text-white px-3 py-2 rounded">List</button>
-      </div>
-
-      {/* ADD */}
-      {page === "add" && (
-        <div className="space-y-3">
-          <input name="sampleNumber" value={form.sampleNumber} onChange={handleChange} placeholder="Sample Number" className="w-full border p-2" />
-          <input name="site" value={form.site} onChange={handleChange} placeholder="Site" className="w-full border p-2" />
-          <input type="date" name="date" value={form.date} onChange={handleChange} className="w-full border p-2" />
-          <input type="time" name="time" value={form.time} onChange={handleChange} className="w-full border p-2" />
-          <input type="date" name="removalDate" value={form.removalDate} onChange={handleChange} className="w-full border p-2" />
-
-          <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} />
-          {form.photo && <img src={form.photo} className="w-full rounded" />}
-
-          <button onClick={getLocation} className="bg-green-500 text-white px-3 py-2 rounded">Capture GPS</button>
-          {form.lat && <p>GPS: {form.lat}, {form.lng}</p>}
-
-          <button onClick={save} className="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
-        </div>
-      )}
-
-      {/* LIST */}
-      {page === "list" && (
-        <div className="space-y-4">
-          <div className="flex gap-2 mb-2">
-            <button onClick={exportData} className="bg-purple-500 text-white px-3 py-2 rounded">Export</button>
-            <button onClick={shareData} className="bg-green-600 text-white px-3 py-2 rounded">Share</button>
-          </div>
-
-          {entries.length === 0 && <p>No entries yet</p>}
-
-          {entries.map((e, i) => (
-            <div key={i} className="border p-3 rounded">
-              <p><b>{e.sampleNumber}</b></p>
-              <p>{e.site}</p>
-              <p>{e.date} {e.time}</p>
-              <p>Remove: {e.removalDate}</p>
-              <p>GPS: {e.lat}, {e.lng}</p>
-              {e.photo && <img src={e.photo} className="mt-2 w-full" />}
-
-              <button onClick={() => deleteEntry(i)} className="mt-2 bg-red-500 text-white px-3 py-1 rounded">Delete</button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function showPage(p){
+  document.getElementById("addPage").style.display = p==="add"?"block":"none";
+  document.getElementById("listPage").style.display = p==="list"?"block":"none";
 }
+
+function render(){
+  document.getElementById("entries").innerHTML =
+    entries.map((e,i)=>`
+      <div style="border:1px solid #ccc; padding:10px; margin:5px">
+        <b>${e.sample}</b><br>
+        ${e.site}<br>
+        ${e.date} ${e.time}<br>
+        Remove: ${e.removal}<br>
+        GPS: ${e.lat}, ${e.lng}<br>
+        ${e.photo ? `<img src="${e.photo}" width="100%">` : ""}
+        <br><br>
+        <button onclick="del(${i})">Delete</button>
+      </div>
+    `).join("");
+}
+
+render();
+
+let lat="", lng="";
+
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    lat = pos.coords.latitude.toFixed(6);
+    lng = pos.coords.longitude.toFixed(6);
+    document.getElementById("gps").innerText = lat + ", " + lng;
+  });
+}
+
+function save(){
+  const file = document.getElementById("photo").files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(){
+    entries.push({
+      sample: document.getElementById("sample").value,
+      site: document.getElementById("site").value,
+      date: document.getElementById("date").value,
+      time: document.getElementById("time").value,
+      removal: document.getElementById("removal").value,
+      lat, lng,
+      photo: reader.result
+    });
+
+    localStorage.setItem("entries", JSON.stringify(entries));
+    render();
+  };
+
+  if(file){
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload();
+  }
+}
+
+function del(i){
+  entries.splice(i,1);
+  localStorage.setItem("entries", JSON.stringify(entries));
+  render();
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(entries)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "radon-data.json";
+  a.click();
+}
+
+function shareData(){
+  if(navigator.share){
+    navigator.share({text: JSON.stringify(entries)});
+  }
+}
+</script>
+
+</body>
+</html>
